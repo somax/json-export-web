@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Json2csv</title>
+    <style>
+        #txt_filter {
+            width: 100%;
+            /* height: 100px; */
+        }
+        #txt_result {
+            width: 100%;
+            height: 300px;
+        }
+        #btn_search {
+            width: 100%;
+        }
+        .sub{
+            color: gray;
+            font-weight: 100;
+        }
+    </style>
+</head>
+<body>
+
+    <h3>查询条件(JSON) <span class="sub" bind="total"></span></h3>
+    <input type="text" name="txt_filter" id="txt_filter" bind="filter">
+    </input>
+    <button id="btn_search" onclick="doFilter()">查询</button>
+
+    <h3>查询结果 <span class="sub" bind="resultCount"></span></h3>
+    <textarea name="txt_result" id="txt_result" bind="result"></textarea>
+    <button id="btn_search" onclick="doExport()">导出</button>
+
+    <script src="https://cdn.jsdelivr.net/npm/json2csv"></script>
+    <script>
+        let flows;
+        let result;
+
+        const $btn_search = document.querySelector('#btn_search')
+
+        let filter = '状态=进行中&'
+
+        // 数据绑定
+        function setData(k,v){
+            document.querySelectorAll(`*[bind="${k}"]`).forEach(
+                el => {
+                    if(typeof v !== 'string'){
+                        v = JSON.stringify(v, false , 2)
+                    }
+                    el.innerHTML = v
+                    el.value = v
+                }
+            )
+        }
+
+        // 从元素获取数据
+        function getData(k){
+            let el = document.querySelector(`*[bind="${k}"]`)
+            let v = el.value || el.innerHTML
+            try {
+                return JSON.parse(v)
+            } catch (error) {
+                return v
+            }
+        }
+
+        // 查询
+        async function doFilter(){
+            
+            _filter = encodeURI(getData('filter'))
+
+            result = await fetch(`/flows?${_filter}`).then(d=>d.json())
+
+            setData('resultCount', result.length)
+            setData('result', result)
+        }
+
+        // 导出
+        function doExport() {
+            let csv;
+            try {
+                csv = json2csv.parse(result)
+            } catch (error) {
+                alert('数据转换出错!\n'+error)
+                return false
+            }
+            let csvContent = encodeURI("data:text/csv;charset=utf-8," + csv)
+
+            let link = document.createElement("a");
+            link.setAttribute("href", csvContent);
+            link.setAttribute("download", "export.csv");
+            document.body.appendChild(link);
+
+            link.click();
+        }
+
+        setData('filter', filter)
+        
+    </script>
+</body>
+</html>

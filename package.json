@@ -1,0 +1,14 @@
+{
+  "name": "exportcsv",
+  "version": "1.0.0",
+  "description": "查询 json 数据并导出 CSV",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ."
+  },
+  "author": "MaXiaojun <somaxj@163.com>",
+  "license": "ISC",
+  "dependencies": {
+    "json-server": "^0.14.2"
+  }
+}
