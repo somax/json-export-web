@@ -4,3 +4,12 @@
 
 利用 json-server 提供 数据查询能力, 使用 json2csv 转换并导出 CSV 文件
 
+### Usage
+
+copy json file to `./db.json`
+
+```
+npm install
+
+npm start
+```

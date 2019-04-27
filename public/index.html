@@ -194,10 +194,13 @@
 
             let link = document.createElement("a");
             link.setAttribute("href", csvContent);
-            link.setAttribute("download", "export.csv");
-            document.body.appendChild(link);
-
-            link.click();
+            let _filename = prompt('保存到:','export.csv')
+            if(_filename){
+                link.setAttribute("download", _filename);
+                document.body.appendChild(link);
+    
+                link.click();
+            }
         }
 
         // 初始化
