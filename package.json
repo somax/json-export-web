@@ -1,12 +1,12 @@
 {
-  "name": "exportcsv",
-  "version": "1.0.0",
-  "description": "查询 json 数据并导出 CSV",
+  "name": "json-export-web",
+  "version": "0.1.0",
+  "description": "Simple json to csv export tool.",
   "main": "index.js",
   "scripts": {
     "start": "node ."
   },
-  "author": "MaXiaojun <somaxj@163.com>",
+  "author": "MaXiaojun<somaxj@163.com>",
   "license": "ISC",
   "dependencies": {
     "json-server": "^0.14.2"

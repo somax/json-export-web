@@ -1,54 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Json2csv</title>
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+        }
+
+        body {
+            margin: 10px;
+        }
+
+        header {
+            margin: 20px 0;
+        }
+
+        blockquote {
+            color: gray;
+            border-left: 3px solid lightgray;
+            padding-left: 8px;
+            font-size: 14px;
+        }
+
+        code {
+            padding: 2px 4px;
+            background-color: rgb(233, 233, 233);
+            border-radius: 2px;
+        }
+
+        input{
+            padding: 5px;
+        }
+
+        input, textarea{
+            border: 1px solid lightgray;
+        }
+        .row {
+            display: flex;
+        }
+
+        #txt_baseurl {
+            width: 250px;
+            /* border: 0; */
+        }
+
         #txt_filter {
             width: 100%;
-            /* height: 100px; */
         }
+
         #txt_result {
             width: 100%;
             height: 300px;
         }
-        #btn_search {
-            width: 100%;
-        }
-        .sub{
+
+        #btn_search {}
+
+        .sub,
+        .sub * {
             color: gray;
             font-weight: 100;
         }
+
+        button {
+            padding: 8px 15px;
+            width: 100%;
+            color: white;
+            background-color: rgb(47, 73, 221);
+            border: 0;
+        }
     </style>
 </head>
-<body>
 
-    <h3>查询条件(JSON) <span class="sub" bind="total"></span></h3>
-    <input type="text" name="txt_filter" id="txt_filter" bind="filter">
-    </input>
-    <button id="btn_search" onclick="doFilter()">查询</button>
+<body>
+    <header>
+        <h1>JSON数据CSV转换工具 <span class="sub">by mxj</span></h1>
+        <blockquote>
+            查询条件语法 (<a href="https://github.com/typicode/json-server/blob/master/README.md#filter"
+                target="jsonserver">更多</a>): <br />
+            相等:<code>k=v</code> 包含:<code>k_in=v</code>, 不等:<code>k_ne=v</code>,
+            大于:<code>k_gte=v</code>, 小于:<code>k_lte=v</code>, 全文检索: <code>q=text</code><br />
+
+        </blockquote>
+    </header>
+
+    <h3>查询条件 <span class="sub">(总数: <b bind="total"></b>)</span></h3>
+    <div class="row">
+        <input type="text" id="txt_baseurl" onchange="getTotal()" placeholder="//localhost:3000/flows" @ bind="baseUrl">
+        </input>
+        <span>?</span>
+        <input type="text" id="txt_filter" onchange="doFilter()" placeholder="key1=value1&key2=value2" @ bind="filter">
+        </input>
+    </div>
+    <button type="submit" id="btn_search" onclick="doFilter()">查询</button>
+
 
     <h3>查询结果 <span class="sub" bind="resultCount"></span></h3>
-    <textarea name="txt_result" id="txt_result" bind="result"></textarea>
-    <button id="btn_search" onclick="doExport()">导出</button>
+    <div class="row">
+        <textarea id="txt_result" bind="result"></textarea>
+    </div>
+    <button id="btn_export" onclick="doExport()">导出CSV</button>
 
     <script src="https://cdn.jsdelivr.net/npm/json2csv"></script>
     <script>
-        let flows;
-        let result;
-
-        const $btn_search = document.querySelector('#btn_search')
-
-        let filter = '状态=进行中&'
+        // ------ 数据绑定基础部分 ------
 
         // 数据绑定
-        function setData(k,v){
+        function setData(k, v) {
             document.querySelectorAll(`*[bind="${k}"]`).forEach(
                 el => {
-                    if(typeof v !== 'string'){
-                        v = JSON.stringify(v, false , 2)
+                    if (typeof v !== 'string') {
+                        v = JSON.stringify(v, false, 2)
                     }
                     el.innerHTML = v
                     el.value = v
@@ -57,7 +123,7 @@
         }
 
         // 从元素获取数据
-        function getData(k){
+        function getData(k) {
             let el = document.querySelector(`*[bind="${k}"]`)
             let v = el.value || el.innerHTML
             try {
@@ -67,24 +133,61 @@
             }
         }
 
-        // 查询
-        async function doFilter(){
-            
-            _filter = encodeURI(getData('filter'))
+        // 绑定数据变更
+        function observe() {
+            let _this = this
+            let els = document.querySelectorAll('*[\\@]')
+            els.forEach((el) => {
+                let oc = el.onchange;
+                el.onchange = function (event) {
+                    console.log(this.value);
+                    let k = this.getAttribute('bind');
+                    _this[k] = this.value
+                    console.log(_this, _this[k])
 
-            result = await fetch(`/flows?${_filter}`).then(d=>d.json())
-
-            setData('resultCount', result.length)
-            setData('result', result)
+                    if (oc) {
+                        oc(event)
+                    }
+                }
+            })
         }
 
-        // 导出
+
+        // --------- 业务部分 ----------
+
+        this.baseUrl = 'http://localhost:3000/flows';
+        this.flows = [];
+        this.result = [];
+        this.filter = ''
+
+        // 查询
+        async function doFilter() {
+            let _filter = encodeURI(filter);
+            let _res = await fetch(`${baseUrl}?${_filter}`);
+
+            if (_res.ok) {
+                this.result = await _res.json();
+            } else {
+                this.result = _res.statusText;
+            }
+
+            setData('resultCount', this.result.length)
+            setData('result', this.result)
+        }
+
+        async function getTotal() {
+            let _total = await fetch(`${baseUrl}?_limit=0`).then(res => res.headers.get('X-Total-Count'))
+
+            setData('total', _total);
+        }
+
+        // 导出 CSV
         function doExport() {
             let csv;
             try {
                 csv = json2csv.parse(result)
             } catch (error) {
-                alert('数据转换出错!\n'+error)
+                alert('数据转换出错!\n' + error)
                 return false
             }
             let csvContent = encodeURI("data:text/csv;charset=utf-8," + csv)
@@ -97,8 +200,12 @@
             link.click();
         }
 
+        // 初始化
         setData('filter', filter)
-        
+        setData('baseUrl', baseUrl)
+        getTotal()
+        observe()
     </script>
 </body>
+
 </html>
