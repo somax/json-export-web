@@ -88,7 +88,7 @@
         </blockquote>
     </header>
 
-    <h3>查询条件 <span class="sub">(总数: <b bind="total"></b>)</span></h3>
+    <h3>查询条件 <span class="sub" bind="total"></span></h3>
     <div class="row">
         <input type="text" id="txt_baseurl" onchange="getTotal()" placeholder="//localhost:3000/flows" @ bind="baseUrl">
         </input>
@@ -101,7 +101,7 @@
 
     <h3>查询结果 <span class="sub" bind="resultCount"></span></h3>
     <div class="row">
-        <textarea id="txt_result" bind="result"></textarea>
+        <textarea id="txt_result" @ bind="result"></textarea>
     </div>
     <button id="btn_export" onclick="doExport()">导出CSV</button>
 
@@ -142,7 +142,13 @@
                 el.onchange = function (event) {
                     console.log(this.value);
                     let k = this.getAttribute('bind');
-                    _this[k] = this.value
+                    let v;
+                    try {
+                        v = JSON.parse(this.value);
+                    } catch (error) {
+                        v = this.value;
+                    }
+                    _this[k] = v
                     console.log(_this, _this[k])
 
                     if (oc) {
@@ -158,7 +164,7 @@
         this.baseUrl = 'http://localhost:3000/flows';
         this.flows = [];
         this.result = [];
-        this.filter = ''
+        this.filter = '_limit=10'
 
         // 查询
         async function doFilter() {
@@ -167,18 +173,19 @@
 
             if (_res.ok) {
                 this.result = await _res.json();
+                setData('resultCount', this.result.length)
             } else {
                 this.result = _res.statusText;
+                setData('resultCount', '')
             }
 
-            setData('resultCount', this.result.length)
             setData('result', this.result)
         }
 
         async function getTotal() {
             let _total = await fetch(`${baseUrl}?_limit=0`).then(res => res.headers.get('X-Total-Count'))
 
-            setData('total', _total);
+            setData('total', _total && `(总数${_total})` || '');
         }
 
         // 导出 CSV
@@ -200,7 +207,9 @@
                 document.body.appendChild(link);
     
                 link.click();
+                link.remove();
             }
+
         }
 
         // 初始化
