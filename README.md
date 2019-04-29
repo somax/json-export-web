@@ -6,10 +6,13 @@
 
 ### Usage
 
-copy json file to `./db.json`
+copy json file to `./db/db.json`
 
 ```
 npm install
 
 npm start
+
+// 指定数据文件
+npm start db_20190428.json
 ```

@@ -197,7 +197,7 @@
                 alert('数据转换出错!\n' + error)
                 return false
             }
-            let csvContent = encodeURI("data:text/csv;charset=utf-8," + csv)
+            let csvContent = encodeURI("data:text/csv;charset=utf-8,\uFEFF" + csv)
 
             let link = document.createElement("a");
             link.setAttribute("href", csvContent);
