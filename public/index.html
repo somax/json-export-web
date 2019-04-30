@@ -44,6 +44,10 @@
             display: flex;
         }
 
+        .row > .cell{
+            width: 100%;
+        }
+
         #txt_baseurl {
             width: 250px;
             /* border: 0; */
@@ -53,12 +57,17 @@
             width: 100%;
         }
 
-        #txt_result {
+        #txt_result, #txt_export {
             width: 100%;
             height: 300px;
         }
 
         #btn_search {}
+
+        #btn_preview{
+            width: 100px;
+            margin-right: 1px;
+        }
 
         .sub,
         .sub * {
@@ -103,7 +112,16 @@
     <div class="row">
         <textarea id="txt_result" @ bind="result"></textarea>
     </div>
-    <button id="btn_export" onclick="doExport()">导出CSV</button>
+
+    <div class="row">
+        <button id="btn_preview" onclick="doPreview()">预览</button>
+        <button id="btn_export" onclick="doExport()">导出CSV</button>
+    </div>
+
+    <h3>导出结果 <span class="sub" bind="exportCount"></span></h3>
+    <!-- <div id="table_preview" bind="export"></div> -->
+    <textarea id="txt_export" @ bind="export"></textarea>
+
 
     <script src="https://cdn.jsdelivr.net/npm/json2csv"></script>
     <script>
@@ -168,7 +186,10 @@
 
         // 查询
         async function doFilter() {
-            let _filter = encodeURI(filter);
+
+            window.localStorage.setItem('filter',this.filter)
+
+            let _filter = encodeURI(this.filter);
             let _res = await fetch(`${baseUrl}?${_filter}`);
 
             if (_res.ok) {
@@ -180,8 +201,10 @@
             }
 
             setData('result', this.result)
+            
         }
 
+        // 获得数据总数
         async function getTotal() {
             let _total = await fetch(`${baseUrl}?_limit=0`).then(res => res.headers.get('X-Total-Count'))
 
@@ -190,31 +213,63 @@
 
         // 导出 CSV
         function doExport() {
+            let csv = doPreview();
+
+            if(!csv) return;
+
+            let _blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            let csvContent = URL.createObjectURL(_blob);
+
+            let $link = document.createElement("a");
+            $link.setAttribute("href", csvContent);
+            let _filename = prompt('保存到:','export.csv')
+            if(_filename){
+                $link.setAttribute("download", _filename);
+                document.body.appendChild($link);
+    
+                $link.click();
+                $link.remove();
+            }
+
+            console.log(csvContent)
+
+        }
+
+        const $tablePreview = document.querySelector('#table_preview');
+        function doPreview(){
             let csv;
             try {
-                csv = json2csv.parse(result)
+                csv = json2csv.parse(result, {flatten:true})
             } catch (error) {
                 alert('数据转换出错!\n' + error)
                 return false
             }
-            let csvContent = encodeURI("data:text/csv;charset=utf-8,\uFEFF" + csv)
 
-            let link = document.createElement("a");
-            link.setAttribute("href", csvContent);
-            let _filename = prompt('保存到:','export.csv')
-            if(_filename){
-                link.setAttribute("download", _filename);
-                document.body.appendChild(link);
-    
-                link.click();
-                link.remove();
-            }
+            setData('export', csv)
+            setData('exportCount', csv.split('\n').length)
 
+            // let rows = csv.split('\n').map( l => l = l.split(','))
+            // let _rows = rows.map(r=>{
+            //     let _r = r.map(c=>{
+            //         return `<div class="cell">${JSON.parse(c)}</div>`
+            //     })
+            //     return `<div class="row">${_r.join('')}</div>`
+
+            // })
+            // $tablePreview.innerHTML = _rows.join('');
+
+            return csv
         }
 
+
         // 初始化
-        setData('filter', filter)
-        setData('baseUrl', baseUrl)
+        let storedFilter = window.localStorage.getItem('filter')
+        if(storedFilter){
+            this.filter = storedFilter
+        }
+        
+        setData('filter',this.filter)
+        setData('baseUrl', this.baseUrl)
         getTotal()
         observe()
     </script>
